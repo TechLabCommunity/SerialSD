@@ -2,6 +2,14 @@
 #define GLOBAL_H
 
 #include <Arduino.h>
+#include <avr/io.h>
+#include <avr/wdt.h>
+#define Reset_AVR()        \
+    wdt_enable(WDTO_30MS); \
+    while (1)              \
+    {                      \
+    }
+#define COUNT_RESET 10
 
 enum ErrorConfig
 {
@@ -14,7 +22,8 @@ enum TypeSerialRequest
 {
     GET_CONFIGURATION = 0,
     LOG_WRITE = 1,
-    UNKNOWN = 2
+    UNKNOWN = 2,
+    ACK = 3
 };
 
 enum TypeSerialResponse
@@ -66,11 +75,15 @@ void SYSTEM_ERROR(ErrorConfig err)
     }
     break;
     }
-    while (1)
+    uint8_t count_err = 0;
+    while (count_err < COUNT_RESET)
     {
         Serial.println("SYSERR:" + error_parse);
         delay(1000);
+        ++count_err;
     }
+    Serial.println("RESET");
+    Reset_AVR();
 }
 
 int freeRam()

@@ -7,10 +7,12 @@
 #define BUFFER_JSON 256
 #define DELIMITER ':'
 #define MAX_SIZE_LOG 7000000000
+#define MAX_BUFFER_CHAR 255
 #define CONFIG_FILE "CONFIG.TXT"
 #define LOG_FILE "LOG.TXT"
 
 const char *filename = CONFIG_FILE;
+volatile bool busy_ping = false;
 Configuration *configuration;
 JsonObject *root;
 
@@ -100,6 +102,12 @@ SerialResponse handle(SerialRequest ser_req)
     response.result = "BAD_REQUEST";
   }
   break;
+  case (ACK):
+  {
+    response.type_response = OK;
+    response.result = ser_req.value;
+  }
+  break;
   }
   return response;
 }
@@ -149,6 +157,11 @@ SerialRequest unserialize_request(String &s)
     req.type_req = LOG_WRITE;
     req.value = compose[1];
   }
+  else if (compose[0].equalsIgnoreCase("ACK"))
+  {
+    req.type_req = ACK;
+    req.value = compose[1];
+  }
   else
   {
     req.type_req = UNKNOWN;
@@ -179,7 +192,14 @@ String wait_request_serial()
     {
       request += (char)Serial.read();
     }
-    is_finish = request.length() > 0 && request[request.length() - 1] == '\n';
+    if (request.length() > 0)
+    {
+      if (request.length() > MAX_BUFFER_CHAR)
+      {
+        request += '\n'; //Truncate request.
+      }
+      is_finish = request[request.length() - 1] == '\n';
+    }
   }
   Serial.flush();
   return String(request);
