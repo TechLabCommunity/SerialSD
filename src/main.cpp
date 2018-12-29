@@ -1,16 +1,20 @@
 #include <ArduinoJson.h>
 #include "global.h"
+#include "utility.h"
 #include <SD.h>
 #include <SPI.h>
 #define CHIP_SELECT 4
 #define BUFFER_JSON 256
 #define DELIMITER ':'
+#define MAX_SIZE_LOG 7000000000
+#define CONFIG_FILE "CONFIG.TXT"
+#define LOG_FILE "LOG.TXT"
 
-const char *filename = "CONFIG.TXT";
+const char *filename = CONFIG_FILE;
 Configuration *configuration;
 JsonObject *root;
 
-String &wait_request_serial();
+String wait_request_serial();
 
 Configuration *loadConfiguration();
 
@@ -27,12 +31,92 @@ void setup()
   Serial.println("START");
 }
 
-SerialRequest &unserialize_request(String &s)
+bool get_config_value(String key, String *value)
 {
-  SerialRequest *req = new SerialRequest();
+  if (key == "euro_price")
+  {
+    (*value) = configuration->euro_price;
+  }
+  else if (key == "version")
+  {
+    (*value) = configuration->version;
+  }
+  else
+  {
+    (*value) = String("");
+    return false;
+  }
+  return true;
+}
+
+bool write_log(String s)
+{
+  s.trim();
+  File log_file = SD.open(LOG_FILE, FILE_WRITE);
+  if (log_file.size() >= MAX_SIZE_LOG)
+  {
+    log_file.close();
+    SD.remove(LOG_FILE);
+    File log_file = SD.open(LOG_FILE, FILE_WRITE);
+  }
+  log_file.println(s);
+  log_file.close();
+  return true;
+}
+
+SerialResponse handle(SerialRequest ser_req)
+{
+  SerialResponse response;
+  switch (ser_req.type_req)
+  {
+  case (GET_CONFIGURATION):
+  {
+    String value;
+    if (!get_config_value(ser_req.value, &value))
+    {
+      response.type_response = ERROR;
+      response.result = "KEY_NOT_FOUND";
+      return response;
+    }
+    response.type_response = OK;
+    response.result = value;
+  }
+  break;
+  case (LOG_WRITE):
+  {
+    if (!write_log(ser_req.value))
+    {
+      response.type_response = ERROR;
+      response.result = "IMPOSSIBLE_WRITE";
+      return response;
+    }
+    response.type_response = OK;
+    response.result = "WRITTEN";
+  }
+  break;
+  case (UNKNOWN):
+  {
+    response.type_response = ERROR;
+    response.result = "BAD_REQUEST";
+  }
+  break;
+  }
+  return response;
+}
+
+SerialRequest unserialize_request(String &s)
+{
+  SerialRequest req;
+  s.trim();
   if (s.length() == 0)
   {
-    return *req;
+    req.type_req = UNKNOWN;
+    return req;
+  }
+  if (how_many_occur_char(s, DELIMITER) != 1)
+  {
+    req.type_req = UNKNOWN;
+    return req;
   }
   String compose[2];
   compose[0] = compose[1] = "";
@@ -50,45 +134,55 @@ SerialRequest &unserialize_request(String &s)
     }
     i++;
   }
-  if (compose[0] == "GET")
+  compose[1].trim();
+  if (compose[1].length() == 0)
   {
-    req->type_req = GET_CONFIGURATION;
+    req.type_req = UNKNOWN;
   }
-  else if (compose[0] == "LOG")
+  if (compose[0].equalsIgnoreCase("GET"))
   {
-    req->type_req = LOG_WRITE;
+    req.type_req = GET_CONFIGURATION;
+    req.value = compose[1];
+  }
+  else if (compose[0].equalsIgnoreCase("LOG"))
+  {
+    req.type_req = LOG_WRITE;
+    req.value = compose[1];
   }
   else
   {
-    req->type_req = UNKNOWN;
+    req.type_req = UNKNOWN;
   }
-  req->value = compose[2];
-  return *req;
+  return req;
 }
 
 void loop()
 {
-  String &s = wait_request_serial();
-  SerialRequest &req = unserialize_request(s);
+  String s = wait_request_serial();
+  SerialRequest req = unserialize_request(s);
+  SerialResponse resp = handle(req);
   delay(80);
-  Serial.println(req.type_req);
-  Serial.println(req.value);
+  Serial.println(String(resp.type_response) + ":" + resp.result);
   Serial.flush();
+#ifdef DEBUG
+  Serial.println("Free RAM : " + String(freeRam()));
+#endif
 }
 
-String &wait_request_serial()
+String wait_request_serial()
 {
-  String *request = new String();
+  String request = "";
   bool is_finish = false;
   while (!is_finish)
   {
     if (Serial.available())
     {
-      (*request) += (char)Serial.read();
+      request += (char)Serial.read();
     }
-    is_finish = request->length() > 0 && (*request)[request->length() - 1] == '\n';
+    is_finish = request.length() > 0 && request[request.length() - 1] == '\n';
   }
-  return *request;
+  Serial.flush();
+  return String(request);
 }
 
 Configuration *loadConfiguration()

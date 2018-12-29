@@ -68,10 +68,16 @@ void SYSTEM_ERROR(ErrorConfig err)
     }
     while (1)
     {
-        Serial.println("ERR:");
-        Serial.println(error_parse);
+        Serial.println("SYSERR:" + error_parse);
         delay(1000);
     }
+}
+
+int freeRam()
+{
+    extern int __heap_start, *__brkval;
+    int v;
+    return (int)&v - (__brkval == 0 ? (int)&__heap_start : (int)__brkval);
 }
 
 #endif
