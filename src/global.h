@@ -30,8 +30,8 @@ struct Configuration
 
 struct SerialRequest
 {
-    TypeSerialRequest type_req;
-    String value;
+    TypeSerialRequest type_req = UNKNOWN;
+    String value = "";
 };
 
 struct SerialResponse
