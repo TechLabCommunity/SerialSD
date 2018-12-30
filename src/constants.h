@@ -16,6 +16,7 @@
 #define LOG_FILE "LOG.TXT"
 //If SYSERR shows, set how many times message will be print before reset.
 #define COUNT_RESET 10
+#define MAX_LINE_SIZE 255
 
 #define COMMAND_START "START:OK"
 #define COMMAND_RESET "RESET:OK"

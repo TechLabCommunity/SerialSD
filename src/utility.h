@@ -1,6 +1,7 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 #include <Arduino.h>
+#include "configuration.h"
 
 struct SerialConfiguration
 {
@@ -66,6 +67,40 @@ String wait_request_serial(SerialConfiguration &ser_conf)
     }
     Serial.flush();
     return String(request);
+}
+
+Composition parse_format(String s)
+{
+    Composition comp;
+    s.trim();
+    comp.first = comp.second = "";
+    uint8_t i = 0;
+    uint8_t part = 0;
+    bool is_passed_term = false;
+    while (i < s.length() && s[i] != '\n')
+    {
+        if (s[i] == DELIMITER && !is_passed_term)
+        {
+            ++part;
+            is_passed_term = true;
+        }
+        else
+        {
+            switch (part)
+            {
+            case 0:
+                comp.first += s[i];
+                break;
+            case 1:
+                comp.second += s[i];
+                break;
+            }
+        }
+        i++;
+    }
+    comp.first.trim();
+    comp.second.trim();
+    return comp;
 }
 
 #endif

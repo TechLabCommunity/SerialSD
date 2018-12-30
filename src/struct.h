@@ -15,9 +15,9 @@ enum TypeSerialResponse
     OK = 0,
     ERROR = 1
 };
-struct Configuration
+struct Composition
 {
-    String version, euro_price;
+    String first = "", second = "";
 };
 
 struct SerialRequest

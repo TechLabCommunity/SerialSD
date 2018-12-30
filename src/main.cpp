@@ -1,45 +1,55 @@
-#include <ArduinoJson.h>
-#include <SD.h>
+#include <SdFat.h>
 #include <SPI.h>
 #include "constants.h"
 #include "syserror.h"
 #include "utility.h"
+#include "configuration.h"
 #include "struct.h"
 
 Configuration *configuration;
+SdFat sd;
 
-Configuration *loadConfiguration();
+void get_configuration(Configuration *config, const Composition &comp);
+Configuration *load_configuration();
 String wait_request_serial();
 SerialConfiguration *ser_conf = new SerialConfiguration();
-Configuration *loadConfiguration();
+Configuration *load_configuration();
 
-bool get_config_value(String key, String *value);
-SerialResponse handle(SerialRequest ser_req);
-SerialRequest unserialize_request(String &s);
+bool get_config_value(String, String *);
+SerialResponse handle(SerialRequest);
+SerialRequest unserialize_request(String &);
+Composition parse_format(String s);
 
 void setup()
 {
   Serial.begin(9600);
   Serial.flush();
-  Serial.println(COMMAND_START);
-  while (!SD.begin(CHIP_SELECT))
+  ser_conf->message_timeout = DEFAULT_MESSAGE_TIMEOUT;
+  while (!sd.begin(CHIP_SELECT, SPI_HALF_SPEED))
   {
     ErrorConfig err = BEGIN_SD_FAILED;
     SYSTEM_ERROR(err);
   }
-  ser_conf->message_timeout = DEFAULT_MESSAGE_TIMEOUT;
-  configuration = loadConfiguration();
+  if (!sd.exists(LOG_FILE))
+  {
+    SdFile file;
+    file.open(LOG_FILE, O_CREAT);
+    file.close();
+  }
+  configuration = load_configuration();
+  Serial.println(COMMAND_START);
 }
 
 bool write_log(String s)
 {
   s.trim();
-  File log_file = SD.open(LOG_FILE, FILE_WRITE);
-  if (log_file.size() >= MAX_SIZE_LOG)
+  SdFile log_file;
+  log_file.open(LOG_FILE, O_CREAT | O_WRITE | O_AT_END);
+  if (log_file.dirSize() >= MAX_SIZE_LOG)
   {
     log_file.close();
-    SD.remove(LOG_FILE);
-    log_file = SD.open(LOG_FILE, FILE_WRITE);
+    log_file.remove();
+    log_file.open(LOG_FILE, O_CREAT | O_WRITE | O_AT_END);
   }
   log_file.println(s);
   log_file.close();
@@ -54,7 +64,7 @@ SerialResponse handle(SerialRequest ser_req)
   case (GET_CONFIGURATION):
   {
     String value;
-    if (!get_config_value(ser_req.value, &value))
+    if (!get_from_configuration(ser_req.value, &value, *configuration))
     {
       response.type_response = ERROR;
       response.result = RESULT_KEY_NOT_FOUND;
@@ -95,49 +105,30 @@ SerialResponse handle(SerialRequest ser_req)
 SerialRequest unserialize_request(String &s)
 {
   SerialRequest req;
-  s.trim();
   if (s.length() == 0 || how_many_occur_char(s, DELIMITER) == 0)
   {
     req.type_req = UNKNOWN;
     return req;
   }
-  String compose[2];
-  compose[0] = compose[1] = "";
-  uint8_t i = 0;
-  uint8_t part = 0;
-  bool is_passed_term = false;
-  while (i < s.length() && s[i] != '\n')
-  {
-    if (s[i] == DELIMITER && !is_passed_term)
-    {
-      ++part;
-      is_passed_term = true;
-    }
-    else
-    {
-      compose[part] += s[i];
-    }
-    i++;
-  }
-  compose[1].trim();
-  if (compose[1].length() == 0)
+  Composition comp = parse_format(s);
+  if (comp.second.length() == 0)
   {
     req.type_req = UNKNOWN;
   }
-  if (compose[0].equalsIgnoreCase(PREFIX_GET))
+  if (comp.first.equalsIgnoreCase(PREFIX_GET))
   {
     req.type_req = GET_CONFIGURATION;
-    req.value = compose[1];
+    req.value = comp.second;
   }
-  else if (compose[0].equalsIgnoreCase(PREFIX_LOG))
+  else if (comp.first.equalsIgnoreCase(PREFIX_LOG))
   {
     req.type_req = LOG_WRITE;
-    req.value = compose[1];
+    req.value = comp.second;
   }
-  else if (compose[0].equalsIgnoreCase(PREFIX_ACK))
+  else if (comp.first.equalsIgnoreCase(PREFIX_ACK))
   {
     req.type_req = ACK;
-    req.value = compose[1];
+    req.value = comp.second;
   }
   else
   {
@@ -173,37 +164,20 @@ void loop()
 #endif
 }
 
-Configuration *loadConfiguration()
+Configuration *load_configuration()
 {
   Configuration *config = new Configuration();
-  File file = SD.open(CONFIG_FILE);
-  StaticJsonBuffer<BUFFER_JSON> jsonBuffer;
-  JsonObject &root = jsonBuffer.parseObject(file);
-  if (!root.success())
+  SdFile conf_file;
+  conf_file.open(CONFIG_FILE, O_READ);
+  char line[MAX_LINE_SIZE];
+  uint32_t n;
+  while ((n = conf_file.fgets(line, sizeof(line))) > 0)
   {
-    SYSTEM_ERROR(JSON_PARSE_FAILED);
+    String line_s = String(line);
+    line_s.trim();
+    Composition comp = parse_format(line_s);
+    get_configuration(config, comp);
   }
-  config->euro_price = String(root["euro_price"].as<String>());
-  config->version = String(root["version"].as<String>());
-  file.close();
+  conf_file.close();
   return config;
-}
-
-bool get_config_value(String key, String *value)
-{
-  key.trim();
-  if (key == "euro_price")
-  {
-    (*value) = configuration->euro_price;
-  }
-  else if (key == "version")
-  {
-    (*value) = configuration->version;
-  }
-  else
-  {
-    (*value) = String("");
-    return false;
-  }
-  return true;
 }

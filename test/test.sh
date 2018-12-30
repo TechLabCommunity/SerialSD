@@ -5,9 +5,9 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-printf "get:version\n" > $1
+printf "get:euro_price_0\n" > $1
 sleep 1
-printf "get:version\n" > $1
+printf "get:euro_price_0\n" > $1
 sleep 1
 printf "get:euro_price\n" > $1
 sleep 1
@@ -29,9 +29,9 @@ printf "wefgergfre:version\n" > $1
 sleep 1
 printf ":version\n" > $1
 sleep 1
-printf "log:andrea\n" > $1
+printf "log:nuovo log questa prova\n" > $1
 sleep 1
-printf "log:giusti\n" > $1
+printf "log:sdfat is great\n" > $1
 sleep 1
-printf "log:fine\n" > $1
+printf "log:happy new year\n" > $1
 sleep 1
