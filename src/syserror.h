@@ -2,6 +2,7 @@
 #define GLOBAL_H
 
 #include <Arduino.h>
+#include "constants.h"
 #include <avr/io.h>
 #include <avr/wdt.h>
 
@@ -10,7 +11,6 @@
     while (1)              \
     {                      \
     }
-#define COUNT_RESET 10
 
 enum ErrorConfig
 {
@@ -21,38 +21,38 @@ enum ErrorConfig
 
 void SYSTEM_ERROR(ErrorConfig err)
 {
-    String error_parse = "XXX";
+    String error_parse = "";
     switch (err)
     {
     case FILE_NOT_FOUND:
     {
-        error_parse = "FILE_NOT_FOUND";
+        error_parse = SYSERR_FILE_NOT_FOUND;
     }
     break;
     case JSON_PARSE_FAILED:
     {
-        error_parse = "JSON_PARSE_FAILED";
+        error_parse = SYSERR_JSON_PARSE_FAILED;
     }
     break;
     case BEGIN_SD_FAILED:
     {
-        error_parse = "BEGIN_SD_FAILED";
+        error_parse = SYSERR_BEGIN_SD_FAILED;
     }
     break;
     default:
     {
-        error_parse = "UNKNOWN";
+        error_parse = SYSERR_UNKNOWN;
     }
     break;
     }
     uint8_t count_err = 0;
     while (count_err < COUNT_RESET)
     {
-        Serial.println("SYSERR:" + error_parse);
+        Serial.println(error_parse);
         delay(1000);
         ++count_err;
     }
-    Serial.println("RESET");
+    Serial.println(COMMAND_RESET);
     Reset_AVR();
 }
 

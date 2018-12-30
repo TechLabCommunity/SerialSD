@@ -1,56 +1,34 @@
 #include <ArduinoJson.h>
-#include "global.h"
-#include "utility.h"
-#include "struct.h"
 #include <SD.h>
 #include <SPI.h>
-#define CHIP_SELECT 4
-#define BUFFER_JSON 256
-#define DEFAULT_MESSAGE_TIMEOUT "ERR:MAX_TIMEOUT_REACH"
-#define DELIMITER ':'
-#define MAX_SIZE_LOG 7000000000
-#define CONFIG_FILE "CONFIG.TXT"
-#define LOG_FILE "LOG.TXT"
+#include "constants.h"
+#include "syserror.h"
+#include "utility.h"
+#include "struct.h"
 
-const char *filename = CONFIG_FILE;
-volatile bool busy_ping = false;
 Configuration *configuration;
-JsonObject *root;
 
+Configuration *loadConfiguration();
 String wait_request_serial();
 SerialConfiguration *ser_conf = new SerialConfiguration();
 Configuration *loadConfiguration();
+
+bool get_config_value(String key, String *value);
+SerialResponse handle(SerialRequest ser_req);
+SerialRequest unserialize_request(String &s);
 
 void setup()
 {
   Serial.begin(9600);
   Serial.flush();
+  Serial.println(COMMAND_START);
   while (!SD.begin(CHIP_SELECT))
   {
     ErrorConfig err = BEGIN_SD_FAILED;
     SYSTEM_ERROR(err);
   }
-  ser_conf->message_timeout = "ERR:MAX_TIMEOUT_REACH";
+  ser_conf->message_timeout = DEFAULT_MESSAGE_TIMEOUT;
   configuration = loadConfiguration();
-  Serial.println("START");
-}
-
-bool get_config_value(String key, String *value)
-{
-  if (key == "euro_price")
-  {
-    (*value) = configuration->euro_price;
-  }
-  else if (key == "version")
-  {
-    (*value) = configuration->version;
-  }
-  else
-  {
-    (*value) = String("");
-    return false;
-  }
-  return true;
 }
 
 bool write_log(String s)
@@ -79,7 +57,7 @@ SerialResponse handle(SerialRequest ser_req)
     if (!get_config_value(ser_req.value, &value))
     {
       response.type_response = ERROR;
-      response.result = "KEY_NOT_FOUND";
+      response.result = RESULT_KEY_NOT_FOUND;
       return response;
     }
     response.type_response = OK;
@@ -91,17 +69,17 @@ SerialResponse handle(SerialRequest ser_req)
     if (!write_log(ser_req.value))
     {
       response.type_response = ERROR;
-      response.result = "IMPOSSIBLE_WRITE";
+      response.result = RESULT_IMPOSSIBLE_WRITE;
       return response;
     }
     response.type_response = OK;
-    response.result = "WRITTEN";
+    response.result = RESULT_WRITTEN;
   }
   break;
   case (UNKNOWN):
   {
     response.type_response = ERROR;
-    response.result = "BAD_REQUEST";
+    response.result = RESULT_BAD_REQUEST;
   }
   break;
   case (ACK):
@@ -146,17 +124,17 @@ SerialRequest unserialize_request(String &s)
   {
     req.type_req = UNKNOWN;
   }
-  if (compose[0].equalsIgnoreCase("GET"))
+  if (compose[0].equalsIgnoreCase(PREFIX_GET))
   {
     req.type_req = GET_CONFIGURATION;
     req.value = compose[1];
   }
-  else if (compose[0].equalsIgnoreCase("LOG"))
+  else if (compose[0].equalsIgnoreCase(PREFIX_LOG))
   {
     req.type_req = LOG_WRITE;
     req.value = compose[1];
   }
-  else if (compose[0].equalsIgnoreCase("ACK"))
+  else if (compose[0].equalsIgnoreCase(PREFIX_ACK))
   {
     req.type_req = ACK;
     req.value = compose[1];
@@ -173,8 +151,22 @@ void loop()
   String s = wait_request_serial(*ser_conf);
   SerialRequest req = unserialize_request(s);
   SerialResponse resp = handle(req);
+  String type_word = "";
+  switch (resp.type_response)
+  {
+  case OK:
+  {
+    type_word = PREFIX_RESPONSE_OK;
+  }
+  break;
+  case ERROR:
+  {
+    type_word = PREFIX_RESPONSE_ERR;
+  }
+  break;
+  }
   delay(80);
-  Serial.println(String(resp.type_response) + ":" + resp.result);
+  Serial.println(String(type_word) + ":" + resp.result);
   Serial.flush();
 #ifdef SHOW_MEM_FREE
   Serial.println("Free RAM : " + String(freeRam()));
@@ -184,7 +176,7 @@ void loop()
 Configuration *loadConfiguration()
 {
   Configuration *config = new Configuration();
-  File file = SD.open(filename);
+  File file = SD.open(CONFIG_FILE);
   StaticJsonBuffer<BUFFER_JSON> jsonBuffer;
   JsonObject &root = jsonBuffer.parseObject(file);
   if (!root.success())
@@ -195,4 +187,23 @@ Configuration *loadConfiguration()
   config->version = String(root["version"].as<String>());
   file.close();
   return config;
+}
+
+bool get_config_value(String key, String *value)
+{
+  key.trim();
+  if (key == "euro_price")
+  {
+    (*value) = configuration->euro_price;
+  }
+  else if (key == "version")
+  {
+    (*value) = configuration->version;
+  }
+  else
+  {
+    (*value) = String("");
+    return false;
+  }
+  return true;
 }
