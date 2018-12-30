@@ -59,7 +59,7 @@ bool write_log(String s)
   {
     log_file.close();
     SD.remove(LOG_FILE);
-    File log_file = SD.open(LOG_FILE, FILE_WRITE);
+    log_file = SD.open(LOG_FILE, FILE_WRITE);
   }
   log_file.println(s);
   log_file.close();
