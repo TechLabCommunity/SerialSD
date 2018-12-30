@@ -1,13 +1,14 @@
 #include <ArduinoJson.h>
 #include "global.h"
 #include "utility.h"
+#include "struct.h"
 #include <SD.h>
 #include <SPI.h>
 #define CHIP_SELECT 4
 #define BUFFER_JSON 256
+#define DEFAULT_MESSAGE_TIMEOUT "ERR:MAX_TIMEOUT_REACH"
 #define DELIMITER ':'
 #define MAX_SIZE_LOG 7000000000
-#define MAX_BUFFER_CHAR 255
 #define CONFIG_FILE "CONFIG.TXT"
 #define LOG_FILE "LOG.TXT"
 
@@ -17,7 +18,7 @@ Configuration *configuration;
 JsonObject *root;
 
 String wait_request_serial();
-
+SerialConfiguration *ser_conf = new SerialConfiguration();
 Configuration *loadConfiguration();
 
 void setup()
@@ -29,6 +30,7 @@ void setup()
     ErrorConfig err = BEGIN_SD_FAILED;
     SYSTEM_ERROR(err);
   }
+  ser_conf->message_timeout = "ERR:MAX_TIMEOUT_REACH";
   configuration = loadConfiguration();
   Serial.println("START");
 }
@@ -116,12 +118,7 @@ SerialRequest unserialize_request(String &s)
 {
   SerialRequest req;
   s.trim();
-  if (s.length() == 0)
-  {
-    req.type_req = UNKNOWN;
-    return req;
-  }
-  if (how_many_occur_char(s, DELIMITER) != 1)
+  if (s.length() == 0 || how_many_occur_char(s, DELIMITER) == 0)
   {
     req.type_req = UNKNOWN;
     return req;
@@ -130,11 +127,13 @@ SerialRequest unserialize_request(String &s)
   compose[0] = compose[1] = "";
   uint8_t i = 0;
   uint8_t part = 0;
+  bool is_passed_term = false;
   while (i < s.length() && s[i] != '\n')
   {
-    if (s[i] == DELIMITER)
+    if (s[i] == DELIMITER && !is_passed_term)
     {
       ++part;
+      is_passed_term = true;
     }
     else
     {
@@ -171,38 +170,15 @@ SerialRequest unserialize_request(String &s)
 
 void loop()
 {
-  String s = wait_request_serial();
+  String s = wait_request_serial(*ser_conf);
   SerialRequest req = unserialize_request(s);
   SerialResponse resp = handle(req);
   delay(80);
   Serial.println(String(resp.type_response) + ":" + resp.result);
   Serial.flush();
-#ifdef DEBUG
+#ifdef SHOW_MEM_FREE
   Serial.println("Free RAM : " + String(freeRam()));
 #endif
-}
-
-String wait_request_serial()
-{
-  String request = "";
-  bool is_finish = false;
-  while (!is_finish)
-  {
-    if (Serial.available())
-    {
-      request += (char)Serial.read();
-    }
-    if (request.length() > 0)
-    {
-      if (request.length() > MAX_BUFFER_CHAR)
-      {
-        request += '\n'; //Truncate request.
-      }
-      is_finish = request[request.length() - 1] == '\n';
-    }
-  }
-  Serial.flush();
-  return String(request);
 }
 
 Configuration *loadConfiguration()

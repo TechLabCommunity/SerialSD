@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <avr/io.h>
 #include <avr/wdt.h>
+
 #define Reset_AVR()        \
     wdt_enable(WDTO_30MS); \
     while (1)              \
@@ -16,37 +17,6 @@ enum ErrorConfig
     FILE_NOT_FOUND = 0,
     JSON_PARSE_FAILED = 1,
     BEGIN_SD_FAILED = 2
-};
-
-enum TypeSerialRequest
-{
-    GET_CONFIGURATION = 0,
-    LOG_WRITE = 1,
-    UNKNOWN = 2,
-    ACK = 3
-};
-
-enum TypeSerialResponse
-{
-    OK = 0,
-    ERROR = 1
-};
-
-struct Configuration
-{
-    String version, euro_price;
-};
-
-struct SerialRequest
-{
-    TypeSerialRequest type_req = UNKNOWN;
-    String value = "";
-};
-
-struct SerialResponse
-{
-    TypeSerialResponse type_response = OK;
-    String result = "";
 };
 
 void SYSTEM_ERROR(ErrorConfig err)
@@ -84,13 +54,6 @@ void SYSTEM_ERROR(ErrorConfig err)
     }
     Serial.println("RESET");
     Reset_AVR();
-}
-
-int freeRam()
-{
-    extern int __heap_start, *__brkval;
-    int v;
-    return (int)&v - (__brkval == 0 ? (int)&__heap_start : (int)__brkval);
 }
 
 #endif
