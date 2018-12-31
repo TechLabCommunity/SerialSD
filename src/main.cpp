@@ -137,6 +137,28 @@ SerialRequest unserialize_request(String &s)
   return req;
 }
 
+Configuration *load_configuration()
+{
+  Configuration *config = new Configuration();
+  SdFile conf_file;
+  if (!sd.exists(CONFIG_FILE))
+  {
+    SYSTEM_ERROR(FILE_NOT_FOUND);
+  }
+  conf_file.open(CONFIG_FILE, O_READ);
+  char line[MAX_LINE_SIZE];
+  uint32_t n;
+  while ((n = conf_file.fgets(line, sizeof(line))) > 0)
+  {
+    String line_s = String(line);
+    line_s.trim();
+    SingleComposition comp = parse_format(line_s);
+    get_configuration(config, comp);
+  }
+  conf_file.close();
+  return config;
+}
+
 void loop()
 {
   String s = wait_request_serial(*ser_conf);
@@ -162,26 +184,4 @@ void loop()
 #ifdef SHOW_MEM_FREE
   Serial.println("Free RAM : " + String(freeRam()));
 #endif
-}
-
-Configuration *load_configuration()
-{
-  Configuration *config = new Configuration();
-  SdFile conf_file;
-  if (!sd.exists(CONFIG_FILE))
-  {
-    SYSTEM_ERROR(FILE_NOT_FOUND);
-  }
-  conf_file.open(CONFIG_FILE, O_READ);
-  char line[MAX_LINE_SIZE];
-  uint32_t n;
-  while ((n = conf_file.fgets(line, sizeof(line))) > 0)
-  {
-    String line_s = String(line);
-    line_s.trim();
-    SingleComposition comp = parse_format(line_s);
-    get_configuration(config, comp);
-  }
-  conf_file.close();
-  return config;
 }

@@ -10,7 +10,7 @@ struct SingleComposition
 struct SerialConfiguration
 {
     char terminator = '\n';
-    String message_timeout = DEFAULT_MESSAGE_TIMEOUT;
+    String message_timeout = "";
     uint64_t timeout_buffer = 3000;
     uint16_t max_buffer_size = 100;
 };
@@ -20,9 +20,8 @@ uint16_t how_many_occur_char(String &s, char c)
     if (s.length() == 0)
         return 0;
     int count = 0;
-    for (uint8_t i = 0; i < s.length(); i++)
+    for (uint8_t i = 0; i < s.length(); count += (s[i++] == c))
     {
-        count += (s[i] == c);
     }
     return count;
 }
