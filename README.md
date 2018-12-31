@@ -47,6 +47,10 @@ Some possible troubles:
 * ```BEGIN_SD_FAILED``` SdFat library begin failed.
 * ```UNKNOWN``` Unknown errors.
 
+## Add your configuration
+
+To add your key configuration, go to **configuration.h** and insert your logic.
+
 ## Test it!
 
 **test** folder has many bash script files and you can launch them to test requests:  
