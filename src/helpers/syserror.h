@@ -29,11 +29,6 @@ void SYSTEM_ERROR(ErrorConfig err)
         error_parse = SYSERR_FILE_NOT_FOUND;
     }
     break;
-    case JSON_PARSE_FAILED:
-    {
-        error_parse = SYSERR_JSON_PARSE_FAILED;
-    }
-    break;
     case BEGIN_SD_FAILED:
     {
         error_parse = SYSERR_BEGIN_SD_FAILED;
