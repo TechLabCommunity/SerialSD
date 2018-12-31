@@ -2,18 +2,16 @@
 #define CONFIGURATION_H
 #include <SdFat.h>
 #include <Arduino.h>
-#include "struct.h"
-#include "utility.h"
+#include "helpers/struct.h"
+#include "helpers/utility.h"
 #include "constants.h"
-
-Composition parse_format(String s);
 
 struct Configuration
 {
     String euro_price_0, euro_price_1, euro_price_2;
 };
 
-void get_configuration(Configuration *config, const Composition &comp)
+void get_configuration(Configuration *config, const SingleComposition &comp)
 {
     if (comp.first == "euro_price_0")
     {
@@ -29,7 +27,7 @@ void get_configuration(Configuration *config, const Composition &comp)
     }
 }
 
-bool get_from_configuration(String key, String *value, Configuration &configuration)
+bool get_value_from_key(String key, String *value, Configuration &configuration)
 {
     key.trim();
     if (key == "euro_price_0")

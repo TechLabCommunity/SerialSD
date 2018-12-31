@@ -1,29 +1,26 @@
 #include <SdFat.h>
 #include <SPI.h>
 #include "constants.h"
-#include "syserror.h"
-#include "utility.h"
+#include "helpers/syserror.h"
+#include "helpers/utility.h"
 #include "configuration.h"
-#include "struct.h"
+#include "helpers/struct.h"
+
+void get_configuration(Configuration *config, const SingleComposition &comp);
+bool get_config_value(String, String *);
+String wait_request_serial();
+SerialResponse handle(SerialRequest);
+SerialRequest unserialize_request(String &);
+Configuration *load_configuration();
+Configuration *load_configuration();
+SerialConfiguration *ser_conf = new SerialConfiguration();
 
 Configuration *configuration;
 SdFat sd;
 
-void get_configuration(Configuration *config, const Composition &comp);
-Configuration *load_configuration();
-String wait_request_serial();
-SerialConfiguration *ser_conf = new SerialConfiguration();
-Configuration *load_configuration();
-
-bool get_config_value(String, String *);
-SerialResponse handle(SerialRequest);
-SerialRequest unserialize_request(String &);
-Composition parse_format(String s);
-
 void setup()
 {
-  Serial.begin(9600);
-  Serial.flush();
+  Serial.begin(BAUD_RATE);
   ser_conf->message_timeout = DEFAULT_MESSAGE_TIMEOUT;
   while (!sd.begin(CHIP_SELECT, SPI_HALF_SPEED))
   {
@@ -44,8 +41,11 @@ bool write_log(String s)
 {
   s.trim();
   SdFile log_file;
-  log_file.open(LOG_FILE, O_CREAT | O_WRITE | O_AT_END);
-  if (log_file.dirSize() >= MAX_SIZE_LOG)
+  if (!log_file.open(LOG_FILE, O_CREAT | O_WRITE | O_AT_END))
+  {
+    return false;
+  }
+  if (log_file.fileSize() >= MAX_SIZE_LOG)
   {
     log_file.close();
     log_file.remove();
@@ -64,7 +64,7 @@ SerialResponse handle(SerialRequest ser_req)
   case (GET_CONFIGURATION):
   {
     String value;
-    if (!get_from_configuration(ser_req.value, &value, *configuration))
+    if (!get_value_from_key(ser_req.value, &value, *configuration))
     {
       response.type_response = ERROR;
       response.result = RESULT_KEY_NOT_FOUND;
@@ -110,7 +110,7 @@ SerialRequest unserialize_request(String &s)
     req.type_req = UNKNOWN;
     return req;
   }
-  Composition comp = parse_format(s);
+  SingleComposition comp = parse_format(s);
   if (comp.second.length() == 0)
   {
     req.type_req = UNKNOWN;
@@ -157,7 +157,7 @@ void loop()
   break;
   }
   delay(80);
-  Serial.println(String(type_word) + ":" + resp.result);
+  Serial.println(String(type_word) + String(DELIMITER) + resp.result);
   Serial.flush();
 #ifdef SHOW_MEM_FREE
   Serial.println("Free RAM : " + String(freeRam()));
@@ -168,6 +168,10 @@ Configuration *load_configuration()
 {
   Configuration *config = new Configuration();
   SdFile conf_file;
+  if (!sd.exists(CONFIG_FILE))
+  {
+    SYSTEM_ERROR(FILE_NOT_FOUND);
+  }
   conf_file.open(CONFIG_FILE, O_READ);
   char line[MAX_LINE_SIZE];
   uint32_t n;
@@ -175,7 +179,7 @@ Configuration *load_configuration()
   {
     String line_s = String(line);
     line_s.trim();
-    Composition comp = parse_format(line_s);
+    SingleComposition comp = parse_format(line_s);
     get_configuration(config, comp);
   }
   conf_file.close();

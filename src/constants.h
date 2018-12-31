@@ -1,10 +1,9 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+#define BAUD_RATE 9600
 //Chip select for SD
 #define CHIP_SELECT 4
-//Size buffer for ArduinoJSON
-#define BUFFER_JSON 290
 //Default message when serial receives some data without terminator.
 #define DEFAULT_MESSAGE_TIMEOUT "ERR:MAX_TIMEOUT_REACH"
 //Default delimiter request to split command and value.
@@ -16,7 +15,7 @@
 #define LOG_FILE "LOG.TXT"
 //If SYSERR shows, set how many times message will be print before reset.
 #define COUNT_RESET 10
-#define MAX_LINE_SIZE 255
+#define MAX_LINE_SIZE 150
 
 #define COMMAND_START "START:OK"
 #define COMMAND_RESET "RESET:OK"
@@ -26,6 +25,7 @@
 #define SYSERR_BEGIN_SD_FAILED "BEGIN_SD_FAILED"
 #define SYSERR_UNKNOWN "UNKNOWN"
 
+#define PREFIX_SYSERR "SYSERR"
 #define PREFIX_GET "GET"
 #define PREFIX_ACK "ACK"
 #define PREFIX_LOG "LOG"

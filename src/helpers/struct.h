@@ -15,10 +15,6 @@ enum TypeSerialResponse
     OK = 0,
     ERROR = 1
 };
-struct Composition
-{
-    String first = "", second = "";
-};
 
 struct SerialRequest
 {

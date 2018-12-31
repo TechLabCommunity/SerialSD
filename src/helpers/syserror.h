@@ -52,7 +52,7 @@ void SYSTEM_ERROR(ErrorConfig err)
         delay(1000);
         ++count_err;
     }
-    Serial.println(COMMAND_RESET);
+    Serial.println(String(PREFIX_SYSERR) + String(DELIMITER) + String(COMMAND_RESET));
     Reset_AVR();
 }
 

@@ -1,14 +1,18 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 #include <Arduino.h>
-#include "configuration.h"
+
+struct SingleComposition
+{
+    String first = "", second = "";
+};
 
 struct SerialConfiguration
 {
     char terminator = '\n';
-    String message_timeout = "";
+    String message_timeout = DEFAULT_MESSAGE_TIMEOUT;
     uint64_t timeout_buffer = 3000;
-    uint16_t max_buffer_size = 255;
+    uint16_t max_buffer_size = 100;
 };
 
 uint16_t how_many_occur_char(String &s, char c)
@@ -33,24 +37,26 @@ uint32_t freeRam()
 String wait_request_serial(SerialConfiguration &ser_conf)
 {
     String request = "";
-    bool is_finish = false;
-    bool start_to_eval = false;
+    bool start_timer = false;
     uint64_t timer_ms = 0;
     Serial.flush();
-    while (!is_finish)
+    while (request.length() == 0 || request[request.length() - 1] != ser_conf.terminator)
     {
-        if (request.length() == 1)
+        if (start_timer)
         {
-            timer_ms = millis();
-            start_to_eval = true;
+            if (millis() - timer_ms >= ser_conf.timeout_buffer)
+            {
+                timer_ms = 0;
+                request = "";
+                start_timer = false;
+                if (ser_conf.message_timeout.length() > 0)
+                    Serial.println(ser_conf.message_timeout);
+            }
         }
-        if (start_to_eval && millis() - timer_ms >= ser_conf.timeout_buffer)
+        else if (request.length() == 1)
         {
             timer_ms = millis();
-            request = "";
-            start_to_eval = false;
-            if (ser_conf.message_timeout.length() > 0)
-                Serial.println(ser_conf.message_timeout);
+            start_timer = true;
         }
         if (Serial.available())
         {
@@ -62,16 +68,15 @@ String wait_request_serial(SerialConfiguration &ser_conf)
             {
                 request += ser_conf.terminator; //Truncate request.
             }
-            is_finish = request[request.length() - 1] == ser_conf.terminator;
         }
     }
     Serial.flush();
     return String(request);
 }
 
-Composition parse_format(String s)
+SingleComposition parse_format(String s)
 {
-    Composition comp;
+    SingleComposition comp;
     s.trim();
     comp.first = comp.second = "";
     uint8_t i = 0;
