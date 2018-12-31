@@ -19,6 +19,8 @@ key2:value2
 
 Then, connect RX and TX pin to your main board project and start to send serial requests.
 
+![Schematics](https://i.ibb.co/5r3Y3ZZ/simple-bb.png)
+
 ## Serial request
 
 For the sake of simplicity, a serial request has the same config file's syntax.  
