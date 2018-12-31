@@ -2,7 +2,7 @@
 
 ![alt text](https://img.shields.io/appveyor/ci/gruntjs/grunt.svg "Build passed")
 
-SerialSD is a project to manage **configuration** and **log** file.  
+SerialSD is a project to manage **configuration** and **log** file via serial.  
 This project needs one Arduino's compatible board and SdFat library.
 
 ## How it works
