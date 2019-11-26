@@ -2,19 +2,20 @@
 #define CONSTANTS_H
 
 #define BAUD_RATE 9600
-//Chip select for SD
+// Chip select for SD
 #define CHIP_SELECT 4
-//Default message when serial receives some data without terminator.
+// Default message when serial receives some data without terminator.
 #define DEFAULT_MESSAGE_TIMEOUT "ERR:MAX_TIMEOUT_REACH"
-//Default delimiter request to split command and value.
+// Default delimiter request to split command and value.
 #define DELIMITER ':'
-//Max log file's size. When this size is reached, automatically log file will be removed and recreated.
+// Max log file's size. When this size is reached, automatically log file will
+// be removed and recreated.
 #define MAX_SIZE_LOG 7000000000
-//Files' name.
+// Files' name.
 #define CONFIG_FILE "CONFIG.TXT"
 #define LOG_FILE "LOG.TXT"
-//If SYSERR shows, set how many times message will be print before reset.
-#define COUNT_RESET 10
+// If SYSERR shows, set how many times message will be print before reset.
+#define COUNT_RESET 1
 #define MAX_LINE_SIZE 150
 
 #define COMMAND_START "START:OK"
