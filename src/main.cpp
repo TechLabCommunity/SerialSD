@@ -20,6 +20,13 @@ SdFat sd;
 
 void setup() {
   Serial.begin(BAUD_RATE);
+  Serial.println("TEST");
+
+  // pinMode(PIN_SPI_SS, OUTPUT);
+  // digitalWrite(PIN_SPI_SS, HIGH);
+
+  // pinMode(CHIP_SELECT, OUTPUT);
+  // digitalWrite(CHIP_SELECT, HIGH);
 
   ser_conf->message_timeout = DEFAULT_MESSAGE_TIMEOUT;
 
